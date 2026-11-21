@@ -1,5 +1,5 @@
-using Elmotamer.DbContext; // تأكد من مطابقة اسم الـ Namespace لمشروعك الحالي
-using Elmotamer.Services; // الـ Namespace الخاص بالخدمات
+using Elmotamer.DbContext;
+using Elmotamer.Services;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 
-namespace Elmotamer // تأكد من مطابقة اسم الـ Namespace لمشروعك الحالي
+namespace Elmotamer
 {
     public class Program
     {
@@ -20,7 +20,7 @@ namespace Elmotamer // تأكد من مطابقة اسم الـ Namespace لمش
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // 2. إعدادات CORS (مطابقة للمشروع الشغال)
+            // 2. إعدادات CORS
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
@@ -31,9 +31,12 @@ namespace Elmotamer // تأكد من مطابقة اسم الـ Namespace لمش
                 });
             });
 
-            // 3. إعدادات JWT (مطابقة للمشروع الشغال)
+            // 3. إعدادات JWT
+            // المفتاح السري بيتقرا من ملف الإعدادات فقط، ولو مش موجود التطبيق بيوقف
             var jwtSettings = builder.Configuration.GetSection("Jwt");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "YourVerySecretLongKeyHere123!");
+            var jwtKey = jwtSettings["Key"]
+                ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
+            var key = Encoding.UTF8.GetBytes(jwtKey);
 
             builder.Services.AddAuthentication(options =>
             {
@@ -56,13 +59,13 @@ namespace Elmotamer // تأكد من مطابقة اسم الـ Namespace لمش
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
-            // ==================== تسجيل خدمة تحليل الدروس (كشكول الخدمة - Gemini AI) ====================
+            // ==================== تسجيل خدمة تحليل الدروس (Gemini AI) ====================
             builder.Services.AddHttpClient<ILessonAnalysisService, LessonAnalysisService>(client =>
             {
                 client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
                 client.Timeout = TimeSpan.FromSeconds(60); // مهلة زمنية كافية لاستجابة الموديل
             });
-            // ===========================================================================================
+            // =============================================================================
 
             // 4. إعداد Swagger
             builder.Services.AddSwaggerGen(c =>
@@ -107,11 +110,11 @@ namespace Elmotamer // تأكد من مطابقة اسم الـ Namespace لمش
             {
                 Console.WriteLine($"Firebase initialization skipped or failed: {ex.Message}");
             }
-            // ===================================================================
+            // ========================================================================
 
             var app = builder.Build();
 
-            // 5. تفعيل الـ Middleware بالترتيب الصحيح (هام جداً للاستضافة)
+            // 5. تفعيل الـ Middleware بالترتيب الصحيح
             app.UseStaticFiles();
 
             app.UseSwagger();
